@@ -22,10 +22,76 @@
   
   <!-- Chart.js para indicadores visuais (CDN) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <!-- Supabase (banco de dados e login da equipe) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
   <!-- Cache-busting: timestamp garante que o navegador carrega a versão mais recente -->
-  <link rel="stylesheet" href="styles.css?v=20261124-210">
+  <link rel="stylesheet" href="styles.css?v=20261124-300">
 </head>
 <body>
+  <!-- ====================================================================
+       TELA DE LOGIN (Supabase Auth)
+       ==================================================================== -->
+  <div class="auth-screen" id="authScreen">
+    <div class="auth-card">
+      <img src="icon.svg" alt="PontoFácil" class="auth-logo">
+      <h1>PontoFácil</h1>
+      <p class="text-muted" id="authSubtitle">Entre com seu e-mail corporativo</p>
+
+      <div class="auth-alert" id="authConfigWarning" style="display: none;">
+        ⚙️ <strong>Supabase ainda não configurado.</strong><br>
+        Preencha <code>supabaseUrl</code> e <code>supabaseAnonKey</code> no arquivo <code>config.js</code>
+        (veja o passo a passo no README).
+      </div>
+
+      <div class="auth-loading" id="authLoading">Carregando...</div>
+
+      <form id="loginForm" class="auth-form" style="display: none;">
+        <label for="loginEmail">E-mail</label>
+        <input type="email" id="loginEmail" class="input-control" autocomplete="username" required>
+        <label for="loginPassword">Senha</label>
+        <input type="password" id="loginPassword" class="input-control" autocomplete="current-password" required>
+        <button type="submit" class="btn btn-primary btn-block">Entrar</button>
+        <div class="auth-links">
+          <button type="button" class="link-btn" data-auth-view="signup">Primeiro acesso? Criar conta</button>
+          <button type="button" class="link-btn" data-auth-view="reset">Esqueci minha senha</button>
+        </div>
+      </form>
+
+      <form id="signupForm" class="auth-form" style="display: none;">
+        <p class="auth-hint">Use o e-mail que o gestor pré-cadastrou para você.</p>
+        <label for="signupEmail">E-mail corporativo</label>
+        <input type="email" id="signupEmail" class="input-control" autocomplete="username" required>
+        <label for="signupPassword">Crie uma senha (mín. 6 caracteres)</label>
+        <input type="password" id="signupPassword" class="input-control" autocomplete="new-password" minlength="6" required>
+        <label for="signupPassword2">Repita a senha</label>
+        <input type="password" id="signupPassword2" class="input-control" autocomplete="new-password" minlength="6" required>
+        <button type="submit" class="btn btn-primary btn-block">Criar conta</button>
+        <div class="auth-links">
+          <button type="button" class="link-btn" data-auth-view="login">Já tenho conta: Entrar</button>
+        </div>
+      </form>
+
+      <form id="resetForm" class="auth-form" style="display: none;">
+        <p class="auth-hint">Enviaremos um link para você criar uma nova senha.</p>
+        <label for="resetEmail">E-mail</label>
+        <input type="email" id="resetEmail" class="input-control" autocomplete="username" required>
+        <button type="submit" class="btn btn-primary btn-block">Enviar link</button>
+        <div class="auth-links">
+          <button type="button" class="link-btn" data-auth-view="login">Voltar para Entrar</button>
+        </div>
+      </form>
+
+      <form id="newPasswordForm" class="auth-form" style="display: none;">
+        <p class="auth-hint">Digite sua nova senha.</p>
+        <label for="newPassword">Nova senha (mín. 6 caracteres)</label>
+        <input type="password" id="newPassword" class="input-control" autocomplete="new-password" minlength="6" required>
+        <button type="submit" class="btn btn-primary btn-block">Salvar nova senha</button>
+      </form>
+
+      <div class="auth-message" id="authMessage"></div>
+    </div>
+  </div>
+
   <div class="app-layout">
     <!-- Barra Lateral de Navegação (Desktop e Menu Hambúrguer Mobile) -->
     <aside class="sidebar" id="sidebar">
@@ -39,15 +105,16 @@
         </div>
       </div>
 
-      <!-- Seletor de Perfil Ativo -->
+      <!-- Usuário logado -->
       <div class="user-profile-badge">
         <div class="avatar" id="sidebarAvatar">US</div>
         <div class="profile-info">
-          <label for="activeUserSelect">Usuário Ativo:</label>
-          <select id="activeUserSelect" class="profile-selector" title="Trocar usuário ativo">
-            <!-- Populado via JavaScript -->
-          </select>
-          <span class="role-pill" id="userRoleBadge">Colaborador</span>
+          <strong class="profile-name" id="activeUserName">...</strong>
+          <small class="profile-email" id="activeUserEmail"></small>
+          <div class="profile-actions">
+            <span class="role-pill" id="userRoleBadge">Colaborador</span>
+            <button class="btn-logout" id="btnLogout" title="Sair da conta">Sair ↪</button>
+          </div>
         </div>
       </div>
 
@@ -89,7 +156,7 @@
       </nav>
 
       <div class="sidebar-footer">
-        <p class="system-tag"><strong>Versão 2.0 (Ponto Flexível)</strong><br>PWA • Seguro e Offline</p>
+        <p class="system-tag"><strong>Versão 3.0</strong><br>PWA • Supabase</p>
       </div>
     </aside>
 
@@ -111,7 +178,7 @@
 
       <!-- Banner de Versão do Sistema -->
       <div class="version-banner" id="versionBanner">
-        <span>🆕 <strong>PontoFácil v2.0</strong> — Ponto Flexível com Saídas Pontuais, Ajustes de Batidas e Painel de Configurações</span>
+        <span>🆕 <strong>PontoFácil v3.0</strong> — Agora na nuvem: cada pessoa entra com o próprio login e o gestor acompanha a equipe em tempo real</span>
         <button class="btn btn-sm" style="background:rgba(255,255,255,0.2); color:#fff;" onclick="document.getElementById('versionBanner').style.display='none'">✕</button>
       </div>
 
@@ -467,8 +534,8 @@
           <div class="content-card">
             <div class="card-header">
               <div>
-                <h3>➕ Cadastrar Novo Colaborador ou Gestor</h3>
-                <p class="text-muted">Defina quem tem perfil de colaborador ou perfil administrativo</p>
+                <h3 id="regFormTitle">➕ Pré-cadastrar Colaborador ou Gestor</h3>
+                <p class="text-muted">Depois do pré-cadastro, a pessoa abre o app, toca em <strong>"Primeiro acesso? Criar conta"</strong> e cria a senha com este e-mail</p>
               </div>
             </div>
 
@@ -507,7 +574,8 @@
               </div>
 
               <div class="form-actions">
-                <button type="submit" class="btn btn-primary">💾 Salvar Usuário</button>
+                <button type="button" class="btn btn-secondary" id="btnCancelUserEdit" style="display: none;">Cancelar edição</button>
+                <button type="submit" class="btn btn-primary" id="btnSaveUser">💾 Salvar Pré-cadastro</button>
               </div>
             </form>
           </div>
@@ -528,6 +596,7 @@
                     <th>Departamento</th>
                     <th>Perfil</th>
                     <th>Carga Diária</th>
+                    <th>Situação</th>
                     <th>Ações</th>
                   </tr>
                 </thead>
@@ -557,12 +626,14 @@
               <hr class="divider">
               <div class="backup-item">
                 <div>
-                  <strong>Restaurar Dados a Partir de Backup</strong>
-                  <p class="text-muted">Envie um arquivo JSON exportado previamente para restaurar os dados.</p>
+                  <strong>Importar Dados da Versão Antiga</strong>
+                  <p class="text-muted">Traz marcações e justificativas de um backup JSON (ou deste navegador) para a nuvem.
+                  Os dados são ligados às pessoas pelo e-mail: faça o pré-cadastro delas antes. Dias que já existem na nuvem não são sobrescritos.</p>
                 </div>
-                <div>
+                <div class="d-flex gap-2" style="flex-wrap: wrap;">
                   <input type="file" id="fileImportBackup" accept=".json" style="display: none;">
-                  <button class="btn btn-outline" id="btnTriggerImport">⬆️ Restaurar Backup</button>
+                  <button class="btn btn-outline" id="btnTriggerImport">⬆️ Importar Arquivo JSON</button>
+                  <button class="btn btn-outline" id="btnImportLocal">💻 Importar deste Navegador</button>
                 </div>
               </div>
             </div>
@@ -704,6 +775,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=20261124-210"></script>
+  <script src="config.js?v=20261124-300"></script>
+  <script src="app.js?v=20261124-300"></script>
 </body>
 </html>
