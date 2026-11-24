@@ -21,8 +21,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   
   <!-- Chart.js para indicadores visuais (CDN) -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <!-- Cache-busting: timestamp garante que o navegador carrega a versão mais recente -->
+  <link rel="stylesheet" href="styles.css?v=20261124-210">
 </head>
 <body>
   <div class="app-layout">
@@ -33,7 +34,7 @@
           <img src="icon.svg" alt="Ícone Ponto" class="logo-img">
           <div class="logo-text">
             <h2>PontoFácil</h2>
-            <small>Acompanhamento de Ponto</small>
+            <small>Gestão e Ponto Flexível</small>
           </div>
         </div>
       </div>
@@ -42,8 +43,8 @@
       <div class="user-profile-badge">
         <div class="avatar" id="sidebarAvatar">US</div>
         <div class="profile-info">
-          <label for="activeUserSelect">Colaborador Ativo:</label>
-          <select id="activeUserSelect" class="profile-selector" title="Trocar usuário para testar as permissões">
+          <label for="activeUserSelect">Usuário Ativo:</label>
+          <select id="activeUserSelect" class="profile-selector" title="Trocar usuário ativo">
             <!-- Populado via JavaScript -->
           </select>
           <span class="role-pill" id="userRoleBadge">Colaborador</span>
@@ -55,7 +56,7 @@
         <ul>
           <li>
             <button class="nav-btn active" data-tab="tab-ponto">
-              <span class="nav-icon">🕒</span> Registrar Ponto
+              <span class="nav-icon">🕒</span> Meu Ponto
             </button>
           </li>
           <li>
@@ -65,36 +66,36 @@
           </li>
           <li>
             <button class="nav-btn" data-tab="tab-justificativas">
-              <span class="nav-icon">📝</span> Justificativas
+              <span class="nav-icon">📝</span> Minhas Justificativas
             </button>
           </li>
           <li>
             <button class="nav-btn" data-tab="tab-graficos">
-              <span class="nav-icon">📊</span> Indicadores e Gráficos
+              <span class="nav-icon">📊</span> Meus Indicadores
             </button>
           </li>
-          <!-- Área Exclusiva de Gestão / Adm -->
+          <!-- ÁREAS EXCLUSIVAS PARA GESTORES -->
           <li class="admin-only-item">
             <button class="nav-btn" data-tab="tab-gestao">
-              <span class="nav-icon">👥</span> Painel do Gestor (ADM)
+              <span class="nav-icon">🛡️</span> Painel da Equipe
             </button>
           </li>
           <li class="admin-only-item">
-            <button class="nav-btn" data-tab="tab-usuarios">
-              <span class="nav-icon">➕</span> Cadastro de Pessoal
+            <button class="nav-btn" data-tab="tab-configuracoes">
+              <span class="nav-icon">⚙️</span> Configurações
             </button>
           </li>
         </ul>
       </nav>
 
       <div class="sidebar-footer">
-        <p class="system-tag">Aplicativo PWA • Funciona Offline</p>
+        <p class="system-tag"><strong>Versão 2.0 (Ponto Flexível)</strong><br>PWA • Seguro e Offline</p>
       </div>
     </aside>
 
     <!-- Conteúdo Principal -->
     <main class="main-content">
-      <!-- Topo com Relógio, Saudação e Botão de Instalar no Celular -->
+      <!-- Topo com Relógio, Saudação e Ações Rápidas -->
       <header class="topbar">
         <button class="menu-toggle" id="menuToggle" aria-label="Abrir menu">☰</button>
         <div class="topbar-welcome">
@@ -102,69 +103,76 @@
           <p id="currentDateDisplay">Hoje é ...</p>
         </div>
         <div class="topbar-actions">
-          <!-- Botão de Instalação do App Móvel -->
-          <button class="btn btn-install" id="btnInstallPwa" style="display: none;">
-            📲 Instalar App no Celular
-          </button>
-          <button class="btn btn-secondary" id="btnPrintReport">🖨️ Espelho em PDF</button>
+          <button class="btn btn-outline" id="btnOpenAdjustModal">✏️ Ajustar / Inserir Ponto</button>
+          <button class="btn btn-install" id="btnInstallPwa" style="display: none;">📲 Instalar App</button>
+          <button class="btn btn-secondary" id="btnPrintReport">🖨️ Imprimir Espelho</button>
         </div>
       </header>
 
-      <!-- Banner Mobile de Dica de Instalação -->
+      <!-- Banner de Versão do Sistema -->
+      <div class="version-banner" id="versionBanner">
+        <span>🆕 <strong>PontoFácil v2.0</strong> — Ponto Flexível com Saídas Pontuais, Ajustes de Batidas e Painel de Configurações</span>
+        <button class="btn btn-sm" style="background:rgba(255,255,255,0.2); color:#fff;" onclick="document.getElementById('versionBanner').style.display='none'">✕</button>
+      </div>
+
+      <!-- Banner Mobile de Instalação -->
       <div class="mobile-install-banner" id="mobileInstallBanner" style="display: none;">
         <div class="banner-content">
-          <span>📲 <strong>Instale no seu Celular</strong>: Tenha o ícone do PontoFácil na sua tela inicial!</span>
+          <span>📲 <strong>Instale no seu Celular</strong>: Ícone na tela inicial e acesso rápido!</span>
         </div>
         <button class="btn btn-sm btn-primary" id="btnBannerInstall">Instalar</button>
       </div>
 
-      <!-- ABA 1: Registrar Ponto e Resumo do Dia -->
+      <!-- ====================================================================
+           ABA 1: MEU PONTO (Registro Flexível com Saídas Pontuais)
+           ==================================================================== -->
       <section id="tab-ponto" class="tab-section active">
-        <!-- Cartão Principal do Relógio -->
+        <!-- Cartão Hero com Relógio -->
         <div class="clock-hero-card">
           <div class="clock-time" id="digitalClock">00:00:00</div>
           <p class="clock-date" id="clockFullDate">Segunda-feira, 01 de Janeiro</p>
           
-          <div class="punch-actions">
+          <!-- Botões de Batida Flexíveis -->
+          <div class="punch-actions-flexible">
             <button class="btn btn-punch btn-punch-in" id="btnPunchEntrada">
-              <span class="punch-type">Entrada</span>
-              <span class="punch-sub">Iniciar jornada</span>
+              <span class="punch-type">🟢 Entrada</span>
+              <span class="punch-sub">Iniciar Expediente</span>
             </button>
-            <button class="btn btn-punch btn-punch-pause" id="btnPunchIntervalo">
-              <span class="punch-type">Saída Almoço</span>
-              <span class="punch-sub">Pausa / Intervalo</span>
+            <button class="btn btn-punch btn-punch-pause" id="btnPunchSaidaPontual">
+              <span class="punch-type">🟡 Saída Pontual</span>
+              <span class="punch-sub">Almoço, Reunião, Externa</span>
             </button>
             <button class="btn btn-punch btn-punch-return" id="btnPunchRetorno">
-              <span class="punch-type">Volta Almoço</span>
-              <span class="punch-sub">Retornar do intervalo</span>
+              <span class="punch-type">🔵 Retorno</span>
+              <span class="punch-sub">Voltar ao Expediente</span>
             </button>
-            <button class="btn btn-punch btn-punch-out" id="btnPunchSaida">
-              <span class="punch-type">Saída Final</span>
-              <span class="punch-sub">Encerrar jornada</span>
+            <button class="btn btn-punch btn-punch-out" id="btnPunchSaidaFinal">
+              <span class="punch-type">🔴 Saída Final</span>
+              <span class="punch-sub">Encerrar Expediente</span>
             </button>
           </div>
           
-          <!-- Localização / GPS Opcional para Celular -->
+          <!-- Selo de Geolocalização / GPS -->
           <div class="location-badge" id="locationBadge">
-            <span class="loc-icon">📍</span> <span id="locationText">Localização aproximada pronta para registro</span>
+            <span class="loc-icon">📍</span> <span id="locationText">Buscando sinal de GPS...</span>
           </div>
 
           <div id="punchFeedback" class="feedback-msg"></div>
         </div>
 
-        <!-- Indicadores Rápidos do Mês -->
+        <!-- Indicadores Rápidos -->
         <div class="stats-grid">
           <div class="stat-card">
             <div class="stat-icon icon-blue">⌛</div>
             <div class="stat-data">
-              <span class="stat-label">Horas Hoje</span>
+              <span class="stat-label">Trabalhado Hoje</span>
               <h3 id="statTodayHours">0h 00m</h3>
             </div>
           </div>
           <div class="stat-card">
             <div class="stat-icon icon-green">📅</div>
             <div class="stat-data">
-              <span class="stat-label">Total no Mês</span>
+              <span class="stat-label">Total do Mês</span>
               <h3 id="statMonthHours">0h 00m</h3>
             </div>
           </div>
@@ -178,36 +186,45 @@
           <div class="stat-card">
             <div class="stat-icon icon-amber">⚠️</div>
             <div class="stat-data">
-              <span class="stat-label">Pendências</span>
+              <span class="stat-label">Justificativas</span>
               <h3 id="statPendingCount">0</h3>
             </div>
           </div>
         </div>
 
-        <!-- Marcações de Hoje -->
+        <!-- Linha do Tempo das Batidas de Hoje (Suporta N Batidas e Saídas Pontuais) -->
         <div class="content-card">
           <div class="card-header">
-            <h3>Batidas de Hoje</h3>
-            <span class="badge" id="todayStatusBadge">Jornada Não Iniciada</span>
+            <div>
+              <h3>Linha do Tempo de Hoje</h3>
+              <p class="text-muted">Acompanhe todas as entradas, saídas pontuais e retornos</p>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge" id="todayStatusBadge">Jornada Não Iniciada</span>
+              <button class="btn btn-sm btn-outline" id="btnEditTodayPunches" title="Editar marcações de hoje">✏️ Editar Batidas</button>
+            </div>
           </div>
           <div class="timeline" id="todayTimeline">
-            <!-- Populado via JavaScript -->
+            <!-- Populado via JS -->
           </div>
         </div>
       </section>
 
-      <!-- ABA 2: Meu Histórico -->
+      <!-- ====================================================================
+           ABA 2: MEU HISTÓRICO (Com Suporte a Ajustes Retroativos)
+           ==================================================================== -->
       <section id="tab-historico" class="tab-section">
         <div class="content-card">
           <div class="card-header flex-wrap">
             <div>
-              <h3>Histórico de Presenças e Batidas</h3>
-              <p class="text-muted">Acompanhe todos os seus registros de ponto diários</p>
+              <h3>Meu Histórico de Presenças</h3>
+              <p class="text-muted">Consulte registros diários, total trabalhado, saídas e GPS</p>
             </div>
             <div class="filters-row">
               <label for="historyMonthFilter">Mês/Ano:</label>
               <input type="month" id="historyMonthFilter" class="input-control">
               <button class="btn btn-sm btn-outline" id="btnResetHistoryFilter">Limpar</button>
+              <button class="btn btn-sm btn-primary" id="btnNewRetroactiveRecord">➕ Novo Registro Retroativo</button>
             </div>
           </div>
 
@@ -216,31 +233,32 @@
               <thead>
                 <tr>
                   <th>Data</th>
-                  <th>Entrada</th>
-                  <th>Saída Almoço</th>
-                  <th>Retorno Almoço</th>
-                  <th>Saída Final</th>
+                  <th>Marcações do Dia (Entradas / Saídas Pontuais)</th>
                   <th>Total Trabalhado</th>
-                  <th>Saldo do Dia</th>
-                  <th>Local / GPS</th>
+                  <th>Carga Diária</th>
+                  <th>Saldo</th>
+                  <th>Localização (GPS)</th>
                   <th>Status</th>
+                  <th>Ações</th>
                 </tr>
               </thead>
               <tbody id="historyTableBody">
-                <!-- Registros via JavaScript -->
+                <!-- Populado via JS -->
               </tbody>
             </table>
           </div>
         </div>
       </section>
 
-      <!-- ABA 3: Justificativas de Ausências e Faltas -->
+      <!-- ====================================================================
+           ABA 3: JUSTIFICATIVAS DE AUSÊNCIAS E FALTAS
+           ==================================================================== -->
       <section id="tab-justificativas" class="tab-section">
         <div class="content-card">
           <div class="card-header">
             <div>
-              <h3>Enviar Justificativa de Ausência / Falta</h3>
-              <p class="text-muted">Informe atestados, atrasos ou consultas para avaliação da gestão</p>
+              <h3>Enviar Justificativa de Ausência / Ocorrência</h3>
+              <p class="text-muted">Informe atestados, consultas, saídas de trabalho externo ou esquecimento</p>
             </div>
           </div>
 
@@ -255,22 +273,23 @@
                 <select id="justTipo" class="input-control" required>
                   <option value="">Selecione...</option>
                   <option value="Atestado Médico">Atestado Médico / Consulta</option>
-                  <option value="Falta Justificada">Falta por Motivo de Força Maior</option>
+                  <option value="Serviço Externo">Serviço Externo / Reunião Fora</option>
+                  <option value="Falta Justificada">Falta por Força Maior</option>
                   <option value="Atraso Justificado">Atraso Justificado</option>
                   <option value="Declaração de Comparecimento">Declaração de Comparecimento</option>
-                  <option value="Trabalho Externo">Trabalho Externo / Home Office</option>
+                  <option value="Esquecimento de Batida">Esquecimento de Ponto</option>
                   <option value="Outro">Outro Motivo</option>
                 </select>
               </div>
               <div class="form-group col-md-4">
-                <label for="justHoras">Horas a Justificar (opcional)</label>
-                <input type="number" id="justHoras" class="input-control" placeholder="Ex: 8 ou 2" min="1" max="24" step="0.5">
+                <label for="justHoras">Horas a Abater / Abonar (opcional)</label>
+                <input type="number" id="justHoras" class="input-control" placeholder="Ex: 8 ou 2" min="0.5" max="24" step="0.5">
               </div>
             </div>
 
             <div class="form-group">
               <label for="justMotivo">Descrição Detalhada / Justificativa *</label>
-              <textarea id="justMotivo" class="input-control" rows="3" placeholder="Explique o motivo da ausência, número do atestado, CRM do médico ou detalhes para avaliação..." required></textarea>
+              <textarea id="justMotivo" class="input-control" rows="3" placeholder="Descreva os detalhes da ocorrência para análise da gestão..." required></textarea>
             </div>
 
             <div class="form-actions">
@@ -281,16 +300,16 @@
 
         <div class="content-card mt-4">
           <div class="card-header">
-            <h3>Minhas Solicitações de Justificativa</h3>
+            <h3>Minhas Justificativas Enviadas</h3>
           </div>
           <div class="table-responsive">
             <table class="data-table">
               <thead>
                 <tr>
                   <th>Data Registro</th>
-                  <th>Data Ausência</th>
+                  <th>Data Ocorrência</th>
                   <th>Tipo</th>
-                  <th>Motivo / Descrição</th>
+                  <th>Motivo</th>
                   <th>Horas</th>
                   <th>Status</th>
                   <th>Parecer do Gestor</th>
@@ -304,7 +323,9 @@
         </div>
       </section>
 
-      <!-- ABA 4: Indicadores e Gráficos -->
+      <!-- ====================================================================
+           ABA 4: INDICADORES E GRÁFICOS PESSOAIS
+           ==================================================================== -->
       <section id="tab-graficos" class="tab-section">
         <div class="charts-grid">
           <div class="content-card chart-card">
@@ -318,7 +339,7 @@
 
           <div class="content-card chart-card">
             <div class="card-header">
-              <h3>Proporção de Presenças e Ausências</h3>
+              <h3>Assiduidade e Presenças</h3>
             </div>
             <div class="chart-wrapper">
               <canvas id="chartAttendanceStatus"></canvas>
@@ -328,25 +349,27 @@
 
         <div class="content-card mt-4">
           <div class="card-header">
-            <h3>Resumo de Assiduidade e Indicadores</h3>
+            <h3>Resumo de Desempenho e Horas</h3>
           </div>
           <div class="metrics-summary" id="metricsSummaryContainer">
-            <!-- Preenchido via JS -->
+            <!-- Populado via JS -->
           </div>
         </div>
       </section>
 
-      <!-- ABA 5: Painel do Gestor / ADM (Exclusivo) -->
+      <!-- ====================================================================
+           ABA 5: PAINEL DA EQUIPE (EXCLUSIVO GESTOR)
+           ==================================================================== -->
       <section id="tab-gestao" class="tab-section">
         <div class="banner-adm">
-          <span>🛡️ <strong>Modo Gestão Ativo</strong>: Controle de equipe, validação de horas e aprovação de ocorrências.</span>
+          <span>🛡️ <strong>Painel do Gestor</strong>: Visão gerencial restrita. Apenas gestores têm acesso aos dados consolidados de outros colaboradores.</span>
         </div>
 
         <div class="stats-grid mt-4">
           <div class="stat-card">
             <div class="stat-icon icon-blue">👥</div>
             <div class="stat-data">
-              <span class="stat-label">Total da Equipe</span>
+              <span class="stat-label">Total de Colaboradores</span>
               <h3 id="statAdmTotalEmployees">0</h3>
             </div>
           </div>
@@ -360,7 +383,7 @@
           <div class="stat-card">
             <div class="stat-icon icon-amber">⏳</div>
             <div class="stat-data">
-              <span class="stat-label">Pendências</span>
+              <span class="stat-label">Pendências de Aprovação</span>
               <h3 id="statAdmPendingJust">0</h3>
             </div>
           </div>
@@ -373,10 +396,11 @@
           </div>
         </div>
 
+        <!-- Aprovação de Justificativas -->
         <div class="content-card mt-4">
           <div class="card-header">
-            <h3>Aprovação de Justificativas e Ausências</h3>
-            <p class="text-muted">Revise os atestados e solicitações enviadas</p>
+            <h3>Aprovação de Ocorrências e Atestados</h3>
+            <p class="text-muted">Analise e dê parecer nas solicitações dos colaboradores</p>
           </div>
           <div class="table-responsive">
             <table class="data-table">
@@ -398,16 +422,19 @@
           </div>
         </div>
 
+        <!-- Acompanhamento Geral com Filtro -->
         <div class="content-card mt-4">
           <div class="card-header flex-wrap">
             <div>
               <h3>Espelho de Ponto da Equipe</h3>
-              <p class="text-muted">Acompanhe batidas e saldo de cada membro</p>
+              <p class="text-muted">Acompanhe horários, batidas flexíveis e saldos de qualquer colaborador</p>
             </div>
             <div class="filters-row">
+              <label for="admFilterEmployee">Filtrar:</label>
               <select id="admFilterEmployee" class="input-control">
                 <option value="all">Todos os Colaboradores</option>
               </select>
+              <button class="btn btn-sm btn-outline" id="btnAdmExportCsv">📥 Exportar Relatório (CSV)</button>
             </div>
           </div>
           <div class="table-responsive">
@@ -416,12 +443,11 @@
                 <tr>
                   <th>Colaborador</th>
                   <th>Data</th>
-                  <th>Entrada</th>
-                  <th>Almoço</th>
-                  <th>Retorno</th>
-                  <th>Saída</th>
+                  <th>Batidas Realizadas</th>
                   <th>Horas Trabalhadas</th>
                   <th>Saldo</th>
+                  <th>Localização / GPS</th>
+                  <th>Ações</th>
                 </tr>
               </thead>
               <tbody id="admTeamPunchTableBody">
@@ -432,77 +458,114 @@
         </div>
       </section>
 
-      <!-- ABA 6: Cadastro de Pessoal -->
-      <section id="tab-usuarios" class="tab-section">
-        <div class="content-card">
-          <div class="card-header">
-            <div>
-              <h3>Cadastrar Novo Colaborador ou Gestor</h3>
-              <p class="text-muted">Adicione novos membros para registrar ponto no aplicativo</p>
+      <!-- ====================================================================
+           ABA 6: CONFIGURAÇÕES DO APLICATIVO (EXCLUSIVO GESTOR)
+           ==================================================================== -->
+      <section id="tab-configuracoes" class="tab-section">
+        <div class="settings-grid">
+          <!-- Bloco 1: Cadastro e Gestão de Pessoal -->
+          <div class="content-card">
+            <div class="card-header">
+              <div>
+                <h3>➕ Cadastrar Novo Colaborador ou Gestor</h3>
+                <p class="text-muted">Defina quem tem perfil de colaborador ou perfil administrativo</p>
+              </div>
+            </div>
+
+            <form id="userRegistrationForm" class="app-form">
+              <div class="form-row">
+                <div class="form-group col-md-6">
+                  <label for="regNome">Nome Completo *</label>
+                  <input type="text" id="regNome" class="input-control" placeholder="Ex: Maria Silva" required>
+                </div>
+                <div class="form-group col-md-6">
+                  <label for="regEmail">E-mail Corporativo *</label>
+                  <input type="email" id="regEmail" class="input-control" placeholder="Ex: maria.silva@empresa.com" required>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group col-md-4">
+                  <label for="regCargo">Cargo / Função *</label>
+                  <input type="text" id="regCargo" class="input-control" placeholder="Ex: Gerente de Projetos" required>
+                </div>
+                <div class="form-group col-md-4">
+                  <label for="regDepto">Departamento *</label>
+                  <input type="text" id="regDepto" class="input-control" placeholder="Ex: Operações" required>
+                </div>
+                <div class="form-group col-md-2">
+                  <label for="regPerfil">Perfil de Acesso *</label>
+                  <select id="regPerfil" class="input-control" required>
+                    <option value="colaborador">Colaborador (Vê só os seus dados)</option>
+                    <option value="gestor">Gestor (Acesso Total)</option>
+                  </select>
+                </div>
+                <div class="form-group col-md-2">
+                  <label for="regCarga">Carga Diária (h)</label>
+                  <input type="number" id="regCarga" class="input-control" value="8" min="2" max="14" step="0.5" required>
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary">💾 Salvar Usuário</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Bloco 2: Lista de Membros Cadastrados -->
+          <div class="content-card mt-4">
+            <div class="card-header">
+              <h3>👥 Colaboradores e Gestores Ativos</h3>
+              <p class="text-muted">Gerencie a equipe cadastrada no sistema</p>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Nome</th>
+                    <th>E-mail</th>
+                    <th>Cargo</th>
+                    <th>Departamento</th>
+                    <th>Perfil</th>
+                    <th>Carga Diária</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="registeredUsersTableBody">
+                  <!-- Populado dinamicamente via JS -->
+                </tbody>
+              </table>
             </div>
           </div>
 
-          <form id="userRegistrationForm" class="app-form">
-            <div class="form-row">
-              <div class="form-group col-md-6">
-                <label for="regNome">Nome Completo *</label>
-                <input type="text" id="regNome" class="input-control" placeholder="Ex: Maria Silva" required>
-              </div>
-              <div class="form-group col-md-6">
-                <label for="regEmail">E-mail Corporativo *</label>
-                <input type="email" id="regEmail" class="input-control" placeholder="Ex: maria.silva@empresa.com" required>
+          <!-- Bloco 3: Parâmetros Gerais e Backup de Dados -->
+          <div class="content-card mt-4">
+            <div class="card-header">
+              <div>
+                <h3>💾 Backup, Restauração e Segurança de Dados</h3>
+                <p class="text-muted">Exporte uma cópia completa dos registros ou importe em outro dispositivo</p>
               </div>
             </div>
-
-            <div class="form-row">
-              <div class="form-group col-md-4">
-                <label for="regCargo">Cargo / Função *</label>
-                <input type="text" id="regCargo" class="input-control" placeholder="Ex: Analista Financeiro" required>
+            <div class="backup-actions">
+              <div class="backup-item">
+                <div>
+                  <strong>Exportar Backup Completo (JSON)</strong>
+                  <p class="text-muted">Baixe um arquivo seguro com todos os colaboradores, marcações e justificativas.</p>
+                </div>
+                <button class="btn btn-secondary" id="btnExportBackup">⬇️ Baixar Backup</button>
               </div>
-              <div class="form-group col-md-4">
-                <label for="regDepto">Departamento *</label>
-                <input type="text" id="regDepto" class="input-control" placeholder="Ex: Recursos Humanos" required>
-              </div>
-              <div class="form-group col-md-2">
-                <label for="regPerfil">Perfil *</label>
-                <select id="regPerfil" class="input-control" required>
-                  <option value="colaborador">Colaborador</option>
-                  <option value="gestor">Gestor (ADM)</option>
-                </select>
-              </div>
-              <div class="form-group col-md-2">
-                <label for="regCarga">Carga Diária (h)</label>
-                <input type="number" id="regCarga" class="input-control" value="8" min="4" max="12" step="0.5" required>
+              <hr class="divider">
+              <div class="backup-item">
+                <div>
+                  <strong>Restaurar Dados a Partir de Backup</strong>
+                  <p class="text-muted">Envie um arquivo JSON exportado previamente para restaurar os dados.</p>
+                </div>
+                <div>
+                  <input type="file" id="fileImportBackup" accept=".json" style="display: none;">
+                  <button class="btn btn-outline" id="btnTriggerImport">⬆️ Restaurar Backup</button>
+                </div>
               </div>
             </div>
-
-            <div class="form-actions">
-              <button type="submit" class="btn btn-primary">➕ Salvar Cadastro</button>
-            </div>
-          </form>
-        </div>
-
-        <div class="content-card mt-4">
-          <div class="card-header">
-            <h3>Colaboradores e Gestores Cadastrados</h3>
-          </div>
-          <div class="table-responsive">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Nome</th>
-                  <th>E-mail</th>
-                  <th>Cargo</th>
-                  <th>Departamento</th>
-                  <th>Perfil</th>
-                  <th>Carga</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
-              <tbody id="registeredUsersTableBody">
-                <!-- Preenchido dinamicamente via JS -->
-              </tbody>
-            </table>
           </div>
         </div>
       </section>
@@ -528,13 +591,19 @@
         <span class="b-label">Gráficos</span>
       </button>
       <button class="bottom-nav-item admin-bottom-item" data-tab="tab-gestao" style="display: none;">
-        <span class="b-icon">👥</span>
-        <span class="b-label">Gestão</span>
+        <span class="b-icon">🛡️</span>
+        <span class="b-label">Equipe</span>
+      </button>
+      <button class="bottom-nav-item admin-bottom-item" data-tab="tab-configuracoes" style="display: none;">
+        <span class="b-icon">⚙️</span>
+        <span class="b-label">Config</span>
       </button>
     </nav>
   </div>
 
-  <!-- Modal para Parecer de Justificativa -->
+  <!-- ====================================================================
+       MODAL 1: AVALIAÇÃO DE JUSTIFICATIVAS (GESTOR)
+       ==================================================================== -->
   <div class="modal-overlay" id="justModalOverlay">
     <div class="modal-box">
       <div class="modal-header">
@@ -545,7 +614,7 @@
         <p id="modalDescription">Detalhes da solicitação...</p>
         <div class="form-group mt-3">
           <label for="modalFeedback">Observação / Parecer do Gestor:</label>
-          <textarea id="modalFeedback" class="input-control" rows="3" placeholder="Ex: Atestado validado com sucesso pelo departamento médico."></textarea>
+          <textarea id="modalFeedback" class="input-control" rows="3" placeholder="Ex: Justificativa autorizada conforme política interna."></textarea>
         </div>
       </div>
       <div class="modal-footer">
@@ -555,6 +624,86 @@
     </div>
   </div>
 
-  <script src="app.js"></script>
+  <!-- ====================================================================
+       MODAL 2: AJUSTE / INSERÇÃO DE PONTO RETROATIVO OU SAÍDA PONTUAL
+       ==================================================================== -->
+  <div class="modal-overlay" id="adjustModalOverlay">
+    <div class="modal-box modal-lg">
+      <div class="modal-header">
+        <h3 id="adjustModalTitle">✏️ Ajustar / Registrar Batidas</h3>
+        <button class="modal-close" id="btnAdjustModalClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="adjustPunchForm">
+          <div class="form-row">
+            <div class="form-group col-md-6" id="adjustUserSelectGroup">
+              <label for="adjustUserId">Colaborador:</label>
+              <select id="adjustUserId" class="input-control"></select>
+            </div>
+            <div class="form-group col-md-6">
+              <label for="adjustDate">Data do Registro *</label>
+              <input type="date" id="adjustDate" class="input-control" required>
+            </div>
+          </div>
+
+          <div class="p-3 bg-light rounded mt-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <strong>Horários das Batidas do Dia:</strong>
+              <button type="button" class="btn btn-sm btn-outline" id="btnAddPunchRow">➕ Adicionar Batida / Saída Pontual</button>
+            </div>
+            <div id="punchRowsContainer" class="punch-rows-list">
+              <!-- Linhas dinâmicas de horários inseridas via JS -->
+            </div>
+          </div>
+
+          <div class="form-group mt-3">
+            <label for="adjustMotivo">Motivo do Ajuste / Observação:</label>
+            <input type="text" id="adjustMotivo" class="input-control" placeholder="Ex: Ajuste por esquecimento de batida ou saída externa pontual autorizada">
+          </div>
+
+          <div class="modal-footer mt-4">
+            <button type="button" class="btn btn-secondary" id="btnCancelAdjust">Cancelar</button>
+            <button type="submit" class="btn btn-primary">💾 Salvar Alterações</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       MODAL 3: SELEÇÃO RÁPIDA DE MOTIVO PARA SAÍDA PONTUAL
+       ==================================================================== -->
+  <div class="modal-overlay" id="quickExitModalOverlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>🟡 Registrar Saída Pontual</h3>
+        <button class="modal-close" id="btnQuickExitClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted mb-3">Selecione o motivo da saída para fins de acompanhamento gerencial:</p>
+        <div class="form-group">
+          <label for="quickExitType">Tipo de Saída Pontual:</label>
+          <select id="quickExitType" class="input-control">
+            <option value="Intervalo / Almoço">Almoço / Intervalo Refeição</option>
+            <option value="Reunião Externa">Reunião Externa com Cliente/Parceiro</option>
+            <option value="Visita Técnica">Visita Técnica / Serviço Externo</option>
+            <option value="Consulta / Médico">Consulta Médica / Exame Rápido</option>
+            <option value="Assunto Pessoal">Assunto Particular Rápido</option>
+            <option value="Outro">Outra Saída Pontual</option>
+          </select>
+        </div>
+        <div class="form-group mt-3">
+          <label for="quickExitObs">Detalhe / Observação (opcional):</label>
+          <input type="text" id="quickExitObs" class="input-control" placeholder="Ex: Reunião na filial Centro">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btnQuickExitCancel">Voltar</button>
+        <button type="button" class="btn btn-warning" id="btnConfirmQuickExit">Confirmar Saída</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js?v=20261124-210"></script>
 </body>
 </html>

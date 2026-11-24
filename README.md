@@ -4,6 +4,15 @@ Aplicativo web e móvel completo desenvolvido em **HTML5, CSS3 e JavaScript Puro
 
 ---
 
+## 🌟 Novidades da Versão 2.0 (Ponto Flexível)
+
+1. **Saídas Pontuais e Múltiplos Retornos**: além de Entrada e Saída Final, o botão **🟡 Saída Pontual** abre uma tela rápida para escolher o motivo (Almoço, Reunião Externa, Visita Técnica, Consulta, Assunto Pessoal...). É possível registrar quantas saídas e retornos forem necessários no dia; o sistema soma apenas o tempo efetivamente trabalhado (e o "Trabalhado Hoje" conta o período em andamento até o momento atual).
+2. **Ajustes e Registros Retroativos**: o botão **✏️ Ajustar / Inserir Ponto** (no topo e em cada linha do histórico) corrige horários, adiciona ou remove batidas e cria registros em dias anteriores. A **localização GPS original é preservada** e cada ajuste fica gravado numa trilha de auditoria (quem ajustou, quando, motivo e as batidas anteriores).
+3. **Privacidade por Perfil**: o **Colaborador** vê e ajusta somente os próprios dados; o **Gestor (ADM)** vê o painel da equipe, aprova/rejeita justificativas com parecer, filtra o espelho de ponto de qualquer pessoa e exporta CSV (Excel).
+4. **Painel de Configurações (Gestor)**: cadastro de colaboradores e gestores com departamento e carga diária personalizada (ex.: 6h, 8h) e **backup/restauração em JSON**. O sistema impede remover o último gestor.
+
+---
+
 ## 📱 Como Funciona a Versão para Celular?
 
 Para transformar o site em um aplicativo de celular sem precisar de bibliotecas pesadas ou publicar na Google Play/Apple Store, implementamos a tecnologia oficial da web moderna chamada **PWA (Progressive Web App)**:

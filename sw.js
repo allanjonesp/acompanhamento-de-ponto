@@ -1,5 +1,5 @@
 // Service Worker para funcionamento offline e instalação do PWA no celular
-const CACHE_NAME = 'pontofacil-v2';
+const CACHE_NAME = 'pontofacil-v3';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -40,7 +40,7 @@ self.addEventListener('fetch', (event) => {
         return networkResponse;
       })
       .catch(() => {
-        return caches.match(event.request);
+        return caches.match(event.request, { ignoreSearch: true });
       })
   );
 });

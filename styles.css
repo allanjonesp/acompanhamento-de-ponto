@@ -953,9 +953,225 @@ input, textarea, table, p {
   }
 }
 
+/* ==========================================================================
+   v2.0 - Ponto Flexível: Saídas Pontuais, Ajustes e Configurações
+   ========================================================================== */
+
+/* Utilitários */
+.text-muted { color: var(--text-muted); }
+.d-flex { display: flex; }
+.align-items-center { align-items: center; }
+.justify-content-between { justify-content: space-between; }
+.gap-2 { gap: 8px; }
+.mb-2 { margin-bottom: 8px; }
+.mb-3 { margin-bottom: 12px; }
+.p-3 { padding: 14px; }
+.bg-light { background: #f8fafc; border: 1px solid var(--border-color); }
+.rounded { border-radius: 8px; }
+
+/* Banner de versão */
+.version-banner {
+  background: linear-gradient(90deg, var(--primary), #7c3aed);
+  color: #fff;
+  border-radius: var(--radius);
+  padding: 10px 16px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.88rem;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Botões de batida flexíveis (4 botões) */
+.punch-actions-flexible {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  max-width: 820px;
+  margin: 0 auto;
+}
+
+.punch-actions-flexible .btn-punch {
+  min-width: 0;
+  width: 100%;
+}
+
+.btn-warning { background: var(--warning); color: #fff; }
+.btn-warning:hover { background: #d97706; }
+
+/* Linha do tempo: novos tipos de batida */
+.timeline-item.saida_pontual { border-left-color: var(--warning); }
+.timeline-item.saida_final { border-left-color: #e11d48; }
+
+.timeline-left > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.timeline-motivo {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+/* Pílulas de batidas no histórico */
+.punches-pill-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: 460px;
+}
+
+.punch-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.punch-pill.entrada { background: var(--success-light); color: var(--success-text); border-color: #a7f3d0; }
+.punch-pill.saida_pontual { background: var(--warning-light); color: var(--warning-text); border-color: #fde68a; }
+.punch-pill.retorno { background: #e0f2fe; color: #075985; border-color: #bae6fd; }
+.punch-pill.saida_final { background: #ffe4e6; color: #9f1239; border-color: #fecdd3; }
+
+/* Filtros */
+.filters-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.filters-row label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* Modal grande de ajuste de batidas */
+.modal-box.modal-lg {
+  max-width: 760px;
+}
+
+.modal-box {
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-body {
+  overflow-y: auto;
+}
+
+.modal-body .modal-footer {
+  margin: 24px -24px -24px;
+}
+
+.punch-rows-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.punch-row-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.punch-row-item .row-time {
+  width: 120px;
+}
+
+/* Configurações e backup */
+.settings-grid {
+  display: flex;
+  flex-direction: column;
+}
+
+.backup-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.backup-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.backup-item p {
+  font-size: 0.85rem;
+}
+
+.divider {
+  border: none;
+  border-top: 1px solid var(--border-color);
+}
+
+@media (max-width: 768px) {
+  .punch-actions-flexible {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .version-banner {
+    font-size: 0.8rem;
+  }
+
+  .topbar {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .topbar-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .card-header {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .punch-row-item {
+    flex-wrap: wrap;
+    padding-bottom: 8px;
+    border-bottom: 1px dashed var(--border-color);
+  }
+
+  .punch-row-item .row-type {
+    width: auto !important;
+    flex: 1 1 60%;
+  }
+
+  .punch-row-item .row-time {
+    flex: 1 1 30%;
+    width: auto;
+  }
+
+  .punch-row-item .row-motivo {
+    flex: 1 1 80% !important;
+  }
+
+  .backup-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
 /* Estilos de Impressão (Espelho de Ponto) */
 @media print {
   .sidebar, .topbar-actions, .menu-toggle, .btn-punch, .feedback-msg, .app-form, 
+  .version-banner, .punch-actions-flexible, .data-table td:last-child, .data-table th:last-child,
   .filters-row, .modal-overlay, .mobile-bottom-nav, .mobile-install-banner, .location-badge {
     display: none !important;
   }
