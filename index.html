@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Acompanhamento de Ponto</title>
+  
+  <!-- Configurações PWA e Mobile App (Android e iOS) -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2563eb">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="PontoFácil">
+  <link rel="icon" type="image/svg+xml" href="icon.svg">
+  <link rel="apple-touch-icon" href="icon.svg">
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Chart.js para indicadores visuais (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Barra Lateral de Navegação (Desktop e Menu Hambúrguer Mobile) -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">
+          <img src="icon.svg" alt="Ícone Ponto" class="logo-img">
+          <div class="logo-text">
+            <h2>PontoFácil</h2>
+            <small>Acompanhamento de Ponto</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Seletor de Perfil Ativo -->
+      <div class="user-profile-badge">
+        <div class="avatar" id="sidebarAvatar">US</div>
+        <div class="profile-info">
+          <label for="activeUserSelect">Colaborador Ativo:</label>
+          <select id="activeUserSelect" class="profile-selector" title="Trocar usuário para testar as permissões">
+            <!-- Populado via JavaScript -->
+          </select>
+          <span class="role-pill" id="userRoleBadge">Colaborador</span>
+        </div>
+      </div>
+
+      <!-- Navegação Principal -->
+      <nav class="sidebar-nav">
+        <ul>
+          <li>
+            <button class="nav-btn active" data-tab="tab-ponto">
+              <span class="nav-icon">🕒</span> Registrar Ponto
+            </button>
+          </li>
+          <li>
+            <button class="nav-btn" data-tab="tab-historico">
+              <span class="nav-icon">📋</span> Meu Histórico
+            </button>
+          </li>
+          <li>
+            <button class="nav-btn" data-tab="tab-justificativas">
+              <span class="nav-icon">📝</span> Justificativas
+            </button>
+          </li>
+          <li>
+            <button class="nav-btn" data-tab="tab-graficos">
+              <span class="nav-icon">📊</span> Indicadores e Gráficos
+            </button>
+          </li>
+          <!-- Área Exclusiva de Gestão / Adm -->
+          <li class="admin-only-item">
+            <button class="nav-btn" data-tab="tab-gestao">
+              <span class="nav-icon">👥</span> Painel do Gestor (ADM)
+            </button>
+          </li>
+          <li class="admin-only-item">
+            <button class="nav-btn" data-tab="tab-usuarios">
+              <span class="nav-icon">➕</span> Cadastro de Pessoal
+            </button>
+          </li>
+        </ul>
+      </nav>
+
+      <div class="sidebar-footer">
+        <p class="system-tag">Aplicativo PWA • Funciona Offline</p>
+      </div>
+    </aside>
+
+    <!-- Conteúdo Principal -->
+    <main class="main-content">
+      <!-- Topo com Relógio, Saudação e Botão de Instalar no Celular -->
+      <header class="topbar">
+        <button class="menu-toggle" id="menuToggle" aria-label="Abrir menu">☰</button>
+        <div class="topbar-welcome">
+          <h1 id="welcomeGreeting">Olá, Carregando...</h1>
+          <p id="currentDateDisplay">Hoje é ...</p>
+        </div>
+        <div class="topbar-actions">
+          <!-- Botão de Instalação do App Móvel -->
+          <button class="btn btn-install" id="btnInstallPwa" style="display: none;">
+            📲 Instalar App no Celular
+          </button>
+          <button class="btn btn-secondary" id="btnPrintReport">🖨️ Espelho em PDF</button>
+        </div>
+      </header>
+
+      <!-- Banner Mobile de Dica de Instalação -->
+      <div class="mobile-install-banner" id="mobileInstallBanner" style="display: none;">
+        <div class="banner-content">
+          <span>📲 <strong>Instale no seu Celular</strong>: Tenha o ícone do PontoFácil na sua tela inicial!</span>
+        </div>
+        <button class="btn btn-sm btn-primary" id="btnBannerInstall">Instalar</button>
+      </div>
+
+      <!-- ABA 1: Registrar Ponto e Resumo do Dia -->
+      <section id="tab-ponto" class="tab-section active">
+        <!-- Cartão Principal do Relógio -->
+        <div class="clock-hero-card">
+          <div class="clock-time" id="digitalClock">00:00:00</div>
+          <p class="clock-date" id="clockFullDate">Segunda-feira, 01 de Janeiro</p>
+          
+          <div class="punch-actions">
+            <button class="btn btn-punch btn-punch-in" id="btnPunchEntrada">
+              <span class="punch-type">Entrada</span>
+              <span class="punch-sub">Iniciar jornada</span>
+            </button>
+            <button class="btn btn-punch btn-punch-pause" id="btnPunchIntervalo">
+              <span class="punch-type">Saída Almoço</span>
+              <span class="punch-sub">Pausa / Intervalo</span>
+            </button>
+            <button class="btn btn-punch btn-punch-return" id="btnPunchRetorno">
+              <span class="punch-type">Volta Almoço</span>
+              <span class="punch-sub">Retornar do intervalo</span>
+            </button>
+            <button class="btn btn-punch btn-punch-out" id="btnPunchSaida">
+              <span class="punch-type">Saída Final</span>
+              <span class="punch-sub">Encerrar jornada</span>
+            </button>
+          </div>
+          
+          <!-- Localização / GPS Opcional para Celular -->
+          <div class="location-badge" id="locationBadge">
+            <span class="loc-icon">📍</span> <span id="locationText">Localização aproximada pronta para registro</span>
+          </div>
+
+          <div id="punchFeedback" class="feedback-msg"></div>
+        </div>
+
+        <!-- Indicadores Rápidos do Mês -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon icon-blue">⌛</div>
+            <div class="stat-data">
+              <span class="stat-label">Horas Hoje</span>
+              <h3 id="statTodayHours">0h 00m</h3>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon icon-green">📅</div>
+            <div class="stat-data">
+              <span class="stat-label">Total no Mês</span>
+              <h3 id="statMonthHours">0h 00m</h3>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon icon-purple">⚖️</div>
+            <div class="stat-data">
+              <span class="stat-label">Saldo de Horas</span>
+              <h3 id="statBalanceHours">+0h 00m</h3>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon icon-amber">⚠️</div>
+            <div class="stat-data">
+              <span class="stat-label">Pendências</span>
+              <h3 id="statPendingCount">0</h3>
+            </div>
+          </div>
+        </div>
+
+        <!-- Marcações de Hoje -->
+        <div class="content-card">
+          <div class="card-header">
+            <h3>Batidas de Hoje</h3>
+            <span class="badge" id="todayStatusBadge">Jornada Não Iniciada</span>
+          </div>
+          <div class="timeline" id="todayTimeline">
+            <!-- Populado via JavaScript -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ABA 2: Meu Histórico -->
+      <section id="tab-historico" class="tab-section">
+        <div class="content-card">
+          <div class="card-header flex-wrap">
+            <div>
+              <h3>Histórico de Presenças e Batidas</h3>
+              <p class="text-muted">Acompanhe todos os seus registros de ponto diários</p>
+            </div>
+            <div class="filters-row">
+              <label for="historyMonthFilter">Mês/Ano:</label>
+              <input type="month" id="historyMonthFilter" class="input-control">
+              <button class="btn btn-sm btn-outline" id="btnResetHistoryFilter">Limpar</button>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table" id="historyTable">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Entrada</th>
+                  <th>Saída Almoço</th>
+                  <th>Retorno Almoço</th>
+                  <th>Saída Final</th>
+                  <th>Total Trabalhado</th>
+                  <th>Saldo do Dia</th>
+                  <th>Local / GPS</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="historyTableBody">
+                <!-- Registros via JavaScript -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ABA 3: Justificativas de Ausências e Faltas -->
+      <section id="tab-justificativas" class="tab-section">
+        <div class="content-card">
+          <div class="card-header">
+            <div>
+              <h3>Enviar Justificativa de Ausência / Falta</h3>
+              <p class="text-muted">Informe atestados, atrasos ou consultas para avaliação da gestão</p>
+            </div>
+          </div>
+
+          <form id="justificativaForm" class="app-form">
+            <div class="form-row">
+              <div class="form-group col-md-4">
+                <label for="justData">Data da Ocorrência *</label>
+                <input type="date" id="justData" class="input-control" required>
+              </div>
+              <div class="form-group col-md-4">
+                <label for="justTipo">Tipo de Ocorrência *</label>
+                <select id="justTipo" class="input-control" required>
+                  <option value="">Selecione...</option>
+                  <option value="Atestado Médico">Atestado Médico / Consulta</option>
+                  <option value="Falta Justificada">Falta por Motivo de Força Maior</option>
+                  <option value="Atraso Justificado">Atraso Justificado</option>
+                  <option value="Declaração de Comparecimento">Declaração de Comparecimento</option>
+                  <option value="Trabalho Externo">Trabalho Externo / Home Office</option>
+                  <option value="Outro">Outro Motivo</option>
+                </select>
+              </div>
+              <div class="form-group col-md-4">
+                <label for="justHoras">Horas a Justificar (opcional)</label>
+                <input type="number" id="justHoras" class="input-control" placeholder="Ex: 8 ou 2" min="1" max="24" step="0.5">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="justMotivo">Descrição Detalhada / Justificativa *</label>
+              <textarea id="justMotivo" class="input-control" rows="3" placeholder="Explique o motivo da ausência, número do atestado, CRM do médico ou detalhes para avaliação..." required></textarea>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">📤 Enviar Justificativa</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="content-card mt-4">
+          <div class="card-header">
+            <h3>Minhas Solicitações de Justificativa</h3>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Data Registro</th>
+                  <th>Data Ausência</th>
+                  <th>Tipo</th>
+                  <th>Motivo / Descrição</th>
+                  <th>Horas</th>
+                  <th>Status</th>
+                  <th>Parecer do Gestor</th>
+                </tr>
+              </thead>
+              <tbody id="userJustificationsTableBody">
+                <!-- Populado via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ABA 4: Indicadores e Gráficos -->
+      <section id="tab-graficos" class="tab-section">
+        <div class="charts-grid">
+          <div class="content-card chart-card">
+            <div class="card-header">
+              <h3>Horas Trabalhadas (Últimos 7 Dias)</h3>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="chartWeeklyHours"></canvas>
+            </div>
+          </div>
+
+          <div class="content-card chart-card">
+            <div class="card-header">
+              <h3>Proporção de Presenças e Ausências</h3>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="chartAttendanceStatus"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="content-card mt-4">
+          <div class="card-header">
+            <h3>Resumo de Assiduidade e Indicadores</h3>
+          </div>
+          <div class="metrics-summary" id="metricsSummaryContainer">
+            <!-- Preenchido via JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ABA 5: Painel do Gestor / ADM (Exclusivo) -->
+      <section id="tab-gestao" class="tab-section">
+        <div class="banner-adm">
+          <span>🛡️ <strong>Modo Gestão Ativo</strong>: Controle de equipe, validação de horas e aprovação de ocorrências.</span>
+        </div>
+
+        <div class="stats-grid mt-4">
+          <div class="stat-card">
+            <div class="stat-icon icon-blue">👥</div>
+            <div class="stat-data">
+              <span class="stat-label">Total da Equipe</span>
+              <h3 id="statAdmTotalEmployees">0</h3>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon icon-green">🟢</div>
+            <div class="stat-data">
+              <span class="stat-label">Trabalhando Hoje</span>
+              <h3 id="statAdmActiveToday">0</h3>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon icon-amber">⏳</div>
+            <div class="stat-data">
+              <span class="stat-label">Pendências</span>
+              <h3 id="statAdmPendingJust">0</h3>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon icon-purple">📈</div>
+            <div class="stat-data">
+              <span class="stat-label">Horas Equipe no Mês</span>
+              <h3 id="statAdmTeamHours">0h</h3>
+            </div>
+          </div>
+        </div>
+
+        <div class="content-card mt-4">
+          <div class="card-header">
+            <h3>Aprovação de Justificativas e Ausências</h3>
+            <p class="text-muted">Revise os atestados e solicitações enviadas</p>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Colaborador</th>
+                  <th>Data Ausência</th>
+                  <th>Tipo</th>
+                  <th>Motivo</th>
+                  <th>Horas</th>
+                  <th>Status</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="admJustificationsTableBody">
+                <!-- Populado dinamicamente -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="content-card mt-4">
+          <div class="card-header flex-wrap">
+            <div>
+              <h3>Espelho de Ponto da Equipe</h3>
+              <p class="text-muted">Acompanhe batidas e saldo de cada membro</p>
+            </div>
+            <div class="filters-row">
+              <select id="admFilterEmployee" class="input-control">
+                <option value="all">Todos os Colaboradores</option>
+              </select>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Colaborador</th>
+                  <th>Data</th>
+                  <th>Entrada</th>
+                  <th>Almoço</th>
+                  <th>Retorno</th>
+                  <th>Saída</th>
+                  <th>Horas Trabalhadas</th>
+                  <th>Saldo</th>
+                </tr>
+              </thead>
+              <tbody id="admTeamPunchTableBody">
+                <!-- Preenchido via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ABA 6: Cadastro de Pessoal -->
+      <section id="tab-usuarios" class="tab-section">
+        <div class="content-card">
+          <div class="card-header">
+            <div>
+              <h3>Cadastrar Novo Colaborador ou Gestor</h3>
+              <p class="text-muted">Adicione novos membros para registrar ponto no aplicativo</p>
+            </div>
+          </div>
+
+          <form id="userRegistrationForm" class="app-form">
+            <div class="form-row">
+              <div class="form-group col-md-6">
+                <label for="regNome">Nome Completo *</label>
+                <input type="text" id="regNome" class="input-control" placeholder="Ex: Maria Silva" required>
+              </div>
+              <div class="form-group col-md-6">
+                <label for="regEmail">E-mail Corporativo *</label>
+                <input type="email" id="regEmail" class="input-control" placeholder="Ex: maria.silva@empresa.com" required>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group col-md-4">
+                <label for="regCargo">Cargo / Função *</label>
+                <input type="text" id="regCargo" class="input-control" placeholder="Ex: Analista Financeiro" required>
+              </div>
+              <div class="form-group col-md-4">
+                <label for="regDepto">Departamento *</label>
+                <input type="text" id="regDepto" class="input-control" placeholder="Ex: Recursos Humanos" required>
+              </div>
+              <div class="form-group col-md-2">
+                <label for="regPerfil">Perfil *</label>
+                <select id="regPerfil" class="input-control" required>
+                  <option value="colaborador">Colaborador</option>
+                  <option value="gestor">Gestor (ADM)</option>
+                </select>
+              </div>
+              <div class="form-group col-md-2">
+                <label for="regCarga">Carga Diária (h)</label>
+                <input type="number" id="regCarga" class="input-control" value="8" min="4" max="12" step="0.5" required>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">➕ Salvar Cadastro</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="content-card mt-4">
+          <div class="card-header">
+            <h3>Colaboradores e Gestores Cadastrados</h3>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>E-mail</th>
+                  <th>Cargo</th>
+                  <th>Departamento</th>
+                  <th>Perfil</th>
+                  <th>Carga</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="registeredUsersTableBody">
+                <!-- Preenchido dinamicamente via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Barra de Navegação Inferior para Celular (Bottom Navigation Bar) -->
+    <nav class="mobile-bottom-nav" id="mobileBottomNav">
+      <button class="bottom-nav-item active" data-tab="tab-ponto">
+        <span class="b-icon">🕒</span>
+        <span class="b-label">Ponto</span>
+      </button>
+      <button class="bottom-nav-item" data-tab="tab-historico">
+        <span class="b-icon">📋</span>
+        <span class="b-label">Histórico</span>
+      </button>
+      <button class="bottom-nav-item" data-tab="tab-justificativas">
+        <span class="b-icon">📝</span>
+        <span class="b-label">Justificar</span>
+      </button>
+      <button class="bottom-nav-item" data-tab="tab-graficos">
+        <span class="b-icon">📊</span>
+        <span class="b-label">Gráficos</span>
+      </button>
+      <button class="bottom-nav-item admin-bottom-item" data-tab="tab-gestao" style="display: none;">
+        <span class="b-icon">👥</span>
+        <span class="b-label">Gestão</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- Modal para Parecer de Justificativa -->
+  <div class="modal-overlay" id="justModalOverlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 id="modalTitle">Avaliar Justificativa</h3>
+        <button class="modal-close" id="btnModalClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="modalDescription">Detalhes da solicitação...</p>
+        <div class="form-group mt-3">
+          <label for="modalFeedback">Observação / Parecer do Gestor:</label>
+          <textarea id="modalFeedback" class="input-control" rows="3" placeholder="Ex: Atestado validado com sucesso pelo departamento médico."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-danger" id="btnRejectJust">❌ Rejeitar</button>
+        <button class="btn btn-success" id="btnApproveJust">✅ Aprovar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
