@@ -69,7 +69,12 @@ function friendlyError(err) {
   const msg = (err && (err.message || err.error_description || String(err))) || 'Erro desconhecido';
   if (/Invalid login credentials/i.test(msg)) return 'E-mail ou senha incorretos.';
   if (/Email not confirmed/i.test(msg)) return 'Confirme seu e-mail pelo link que enviamos antes de entrar.';
-  if (/EMAIL_NAO_AUTORIZADO|Database error saving new user/i.test(msg)) return 'Este e-mail não foi pré-cadastrado pelo gestor. Peça o pré-cadastro e tente de novo.';
+  if (/EMAIL_NAO_AUTORIZADO/i.test(msg)) {
+    // Mostra o e-mail exatamente como foi digitado, para facilitar achar erros de digitação
+    const m = msg.match(/e-mail\s+(\S+@\S+)/i);
+    return `O e-mail ${m ? '"' + m[1] + '" ' : ''}não está pré-cadastrado. Confira se digitou igual ao cadastrado pelo gestor ou peça o pré-cadastro.`;
+  }
+  if (/Database error saving new user/i.test(msg)) return 'Não foi possível criar a conta por um erro no banco de dados. Avise o gestor.';
   if (/User already registered/i.test(msg)) return 'Já existe uma conta com este e-mail. Use "Entrar" ou "Esqueci minha senha".';
   if (/Password should be at least/i.test(msg)) return 'A senha precisa ter pelo menos 6 caracteres.';
   if (/rate limit|too many/i.test(msg)) return 'Muitas tentativas seguidas. Aguarde alguns minutos e tente de novo.';
