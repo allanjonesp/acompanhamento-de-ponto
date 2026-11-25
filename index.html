@@ -25,7 +25,7 @@
   <!-- Supabase (banco de dados e login da equipe) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js"></script>
   <!-- Cache-busting: timestamp garante que o navegador carrega a versão mais recente -->
-  <link rel="stylesheet" href="styles.css?v=20261124-300">
+  <link rel="stylesheet" href="styles.css?v=20261125-320">
 </head>
 <body>
   <!-- ====================================================================
@@ -58,8 +58,10 @@
       </form>
 
       <form id="signupForm" class="auth-form" style="display: none;">
-        <p class="auth-hint">Use o e-mail que o gestor pré-cadastrou para você.</p>
-        <label for="signupEmail">E-mail corporativo</label>
+        <p class="auth-hint">Depois de criar a conta, o gestor precisa aprovar seu acesso (se ele já fez seu pré-cadastro, a aprovação é automática).</p>
+        <label for="signupNome">Nome completo</label>
+        <input type="text" id="signupNome" class="input-control" autocomplete="name" maxlength="120" required>
+        <label for="signupEmail">E-mail</label>
         <input type="email" id="signupEmail" class="input-control" autocomplete="username" required>
         <label for="signupPassword">Crie uma senha (mín. 6 caracteres)</label>
         <input type="password" id="signupPassword" class="input-control" autocomplete="new-password" minlength="6" required>
@@ -428,6 +430,11 @@
            ABA 5: PAINEL DA EQUIPE (EXCLUSIVO GESTOR)
            ==================================================================== -->
       <section id="tab-gestao" class="tab-section">
+        <div class="pending-approval-banner" id="pendingApprovalBanner" style="display: none;">
+          <span id="pendingApprovalText"></span>
+          <button class="btn btn-sm btn-primary" id="btnGoToApprovals">Ver cadastros</button>
+        </div>
+
         <div class="banner-adm">
           <span>🛡️ <strong>Painel do Gestor</strong>: Visão gerencial restrita. Apenas gestores têm acesso aos dados consolidados de outros colaboradores.</span>
         </div>
@@ -535,7 +542,7 @@
             <div class="card-header">
               <div>
                 <h3 id="regFormTitle">➕ Pré-cadastrar Colaborador ou Gestor</h3>
-                <p class="text-muted">Depois do pré-cadastro, a pessoa abre o app, toca em <strong>"Primeiro acesso? Criar conta"</strong> e cria a senha com este e-mail</p>
+                <p class="text-muted">Opcional: quem foi pré-cadastrado já entra aprovado ao tocar em <strong>"Primeiro acesso? Criar conta"</strong> com este e-mail. Quem se cadastrar sozinho aparece na lista abaixo como <strong>"Aguardando aprovação"</strong>.</p>
               </div>
             </div>
 
@@ -775,7 +782,7 @@
     </div>
   </div>
 
-  <script src="config.js?v=20261124-300"></script>
-  <script src="app.js?v=20261124-300"></script>
+  <script src="config.js?v=20261125-320"></script>
+  <script src="app.js?v=20261125-320"></script>
 </body>
 </html>

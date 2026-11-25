@@ -19,6 +19,8 @@ let realtimeChannel = null;
 let reloadTimer = null;
 let clockStarted = false;
 let nextAuthMessage = '';   // aviso a mostrar na tela de login após sair
+let nextAuthKind = 'error';
+const MSG_PENDENTE = '⏳ Seu cadastro foi recebido e está aguardando a aprovação do gestor. Você poderá entrar assim que ele aprovar.';
 let weeklyChartInstance = null;
 let statusChartInstance = null;
 let pendingJustificationIdToReview = null;
@@ -31,7 +33,7 @@ let lastKnownLocation = null;
 function perfilFromRow(r) {
   return {
     id: r.id, nome: r.nome, email: r.email, cargo: r.cargo || '', depto: r.depto || '',
-    perfil: r.perfil, cargaHoraria: Number(r.carga_horaria) || 8, ativo: r.ativo
+    perfil: r.perfil, cargaHoraria: Number(r.carga_horaria) || 8, ativo: r.ativo, pendente: !!r.pendente
   };
 }
 
@@ -69,7 +71,12 @@ function friendlyError(err) {
   const msg = (err && (err.message || err.error_description || String(err))) || 'Erro desconhecido';
   if (/Invalid login credentials/i.test(msg)) return 'E-mail ou senha incorretos.';
   if (/Email not confirmed/i.test(msg)) return 'Confirme seu e-mail pelo link que enviamos antes de entrar.';
-  if (/EMAIL_NAO_AUTORIZADO|Database error saving new user/i.test(msg)) return 'Este e-mail não foi pré-cadastrado pelo gestor. Peça o pré-cadastro e tente de novo.';
+  if (/EMAIL_NAO_AUTORIZADO/i.test(msg)) {
+    // Mostra o e-mail exatamente como foi digitado, para facilitar achar erros de digitação
+    const m = msg.match(/e-mail\s+(\S+@\S+)/i);
+    return `O e-mail ${m ? '"' + m[1] + '" ' : ''}não está pré-cadastrado. Confira se digitou igual ao cadastrado pelo gestor ou peça o pré-cadastro.`;
+  }
+  if (/Database error saving new user/i.test(msg)) return 'Não foi possível criar a conta por um erro no banco de dados. Avise o gestor.';
   if (/User already registered/i.test(msg)) return 'Já existe uma conta com este e-mail. Use "Entrar" ou "Esqueci minha senha".';
   if (/Password should be at least/i.test(msg)) return 'A senha precisa ter pelo menos 6 caracteres.';
   if (/rate limit|too many/i.test(msg)) return 'Muitas tentativas seguidas. Aguarde alguns minutos e tente de novo.';
@@ -188,10 +195,12 @@ function showAuthView(view, message = '', isError = false) {
   setAuthMessage(message, isError);
 }
 
-function setAuthMessage(message, isError = false) {
+function setAuthMessage(message, kind = false) {
+  // kind: true/'error' = erro, 'info' = informação, false = sucesso
   const el = document.getElementById('authMessage');
   el.textContent = message;
-  el.className = 'auth-message' + (isError ? ' error' : message ? ' success' : '');
+  const cls = kind === true || kind === 'error' ? ' error' : kind === 'info' ? ' info' : message ? ' success' : '';
+  el.className = 'auth-message' + cls;
 }
 
 function getRedirectUrl() {
@@ -228,19 +237,21 @@ function setupAuthForms() {
 
   const signupForm = document.getElementById('signupForm');
   signupForm.addEventListener('submit', withBusy(signupForm, async () => {
+    const nome = document.getElementById('signupNome').value.trim();
     const email = document.getElementById('signupEmail').value.trim();
     const password = document.getElementById('signupPassword').value;
+    if (!nome) throw new Error('Informe seu nome completo.');
     if (password !== document.getElementById('signupPassword2').value) {
       throw new Error('As senhas digitadas não são iguais.');
     }
     const { data, error } = await sb.auth.signUp({
-      email, password, options: { emailRedirectTo: getRedirectUrl() }
+      email, password, options: { emailRedirectTo: getRedirectUrl(), data: { nome } }
     });
     if (error) throw error;
     if (data.session) {
       await startSession(data.user);
     } else {
-      showAuthView('login', '✅ Conta criada! Abra o link de confirmação que enviamos para o seu e-mail e depois entre aqui.');
+      showAuthView('login', '✅ Conta criada! Abra o link de confirmação que enviamos para o seu e-mail. Depois, se o gestor ainda não tiver aprovado seu acesso, aguarde a aprovação para entrar.', 'info');
       document.getElementById('loginEmail').value = email;
     }
   }));
@@ -280,7 +291,8 @@ async function startSession(authUser) {
     return;
   }
   if (!perfilRow.ativo) {
-    await signOutWithMessage('Sua conta está desativada. Fale com o gestor.');
+    if (perfilRow.pendente) await signOutWithMessage(MSG_PENDENTE, 'info');
+    else await signOutWithMessage('Sua conta está desativada. Fale com o gestor.');
     return;
   }
 
@@ -303,8 +315,9 @@ async function startSession(authUser) {
   subscribeRealtime();
 }
 
-async function signOutWithMessage(message) {
+async function signOutWithMessage(message, kind = 'error') {
   nextAuthMessage = message;
+  nextAuthKind = kind;
   await sb.auth.signOut();
   handleSignedOut();
 }
@@ -323,7 +336,7 @@ function handleSignedOut() {
   switchTab('tab-ponto');
   document.getElementById('loginPassword').value = '';
   if (nextAuthMessage) {
-    showAuthView('login', nextAuthMessage, true);
+    showAuthView('login', nextAuthMessage, nextAuthKind);
   } else if (!document.getElementById('authMessage').classList.contains('error')) {
     showAuthView('login');
   }
@@ -817,7 +830,7 @@ function setupAdjustModal() {
 
     if (activeUser.perfil === 'gestor') {
       userGroup.style.display = 'block';
-      users.forEach(u => {
+      users.filter(u => !u.pendente).forEach(u => {
         const opt = document.createElement('option');
         opt.value = u.id;
         opt.textContent = `${u.nome}${u.cargo ? ' (' + u.cargo + ')' : ''}${u.ativo ? '' : ' - inativo'}`;
@@ -1089,6 +1102,13 @@ function renderAdmDashboard() {
 
   document.getElementById('statAdmTotalEmployees').textContent = users.filter(u => u.ativo).length;
 
+  const pendentes = users.filter(u => u.pendente);
+  const pendingBanner = document.getElementById('pendingApprovalBanner');
+  pendingBanner.style.display = pendentes.length ? 'flex' : 'none';
+  document.getElementById('pendingApprovalText').textContent = pendentes.length === 1
+    ? `⏳ ${pendentes[0].nome} se cadastrou e aguarda sua aprovação.`
+    : `⏳ ${pendentes.length} cadastros aguardando sua aprovação.`;
+
   const todayStr = getTodayDateStr();
   const activeToday = punches.filter(p => {
     if (p.date !== todayStr || p.punches.length === 0) return false;
@@ -1272,7 +1292,33 @@ window.toggleUserActive = async function(userId) {
   const action = u.ativo ? 'desativar' : 'reativar';
   const extra = u.ativo ? '\n\nA pessoa não conseguirá mais entrar nem bater ponto. O histórico é preservado.' : '';
   if (!confirm(`Deseja ${action} "${u.nome}"?${extra}`)) return;
-  const { error } = await sb.from('perfis').update({ ativo: !u.ativo }).eq('id', userId);
+  const { error } = await sb.from('perfis').update({ ativo: !u.ativo, pendente: false }).eq('id', userId);
+  if (error) {
+    alert('⚠️ ' + friendlyError(error));
+    return;
+  }
+  await loadAllData();
+  renderAll();
+};
+
+window.approveUser = async function(userId) {
+  const u = users.find(item => item.id === userId);
+  if (!u) return;
+  if (!confirm(`Aprovar o acesso de "${u.nome}" (${u.email}) como colaborador?\n\nDepois você pode ajustar cargo, departamento e carga horária em "Editar".`)) return;
+  const { error } = await sb.from('perfis').update({ ativo: true, pendente: false }).eq('id', userId);
+  if (error) {
+    alert('⚠️ ' + friendlyError(error));
+    return;
+  }
+  await loadAllData();
+  renderAll();
+};
+
+window.rejectUser = async function(userId) {
+  const u = users.find(item => item.id === userId);
+  if (!u) return;
+  if (!confirm(`Recusar o cadastro de "${u.nome}" (${u.email})?\n\nA pessoa não conseguirá entrar. Se mudar de ideia, use "Reativar".`)) return;
+  const { error } = await sb.from('perfis').update({ ativo: false, pendente: false }).eq('id', userId);
   if (error) {
     alert('⚠️ ' + friendlyError(error));
     return;
@@ -1519,21 +1565,27 @@ function renderRegisteredUsersTable() {
     ? '<span class="badge badge-warning">Gestor (ADM)</span>'
     : '<span class="badge badge-info">Colaborador</span>';
 
-  users.forEach(u => {
+  const ordered = [...users].sort((a, b) => (b.pendente - a.pendente) || a.nome.localeCompare(b.nome));
+  ordered.forEach(u => {
     const isMe = u.id === activeUser.id;
+    const situacao = u.pendente
+      ? '<span class="badge badge-warning">Aguardando aprovação</span>'
+      : u.ativo ? '<span class="badge badge-success">Ativo</span>' : '<span class="badge badge-danger">Inativo</span>';
+    const acoes = u.pendente
+      ? `<button class="btn btn-sm btn-success" onclick="approveUser('${u.id}')">✅ Aprovar</button>
+         <button class="btn btn-sm btn-outline" onclick="rejectUser('${u.id}')">❌ Recusar</button>`
+      : `<button class="btn btn-sm btn-outline" onclick="editUser('perfil', '${u.id}')">✏️ Editar</button>
+         ${isMe ? '' : `<button class="btn btn-sm btn-outline" onclick="toggleUserActive('${u.id}')">${u.ativo ? '🚫 Desativar' : '♻️ Reativar'}</button>`}`;
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><strong>${escapeHTML(u.nome)}</strong>${isMe ? ' <small class="text-muted">(você)</small>' : ''}</td>
       <td>${escapeHTML(u.email)}</td>
-      <td>${escapeHTML(u.cargo)}</td>
-      <td>${escapeHTML(u.depto)}</td>
+      <td>${escapeHTML(u.cargo) || '<span class="text-muted">—</span>'}</td>
+      <td>${escapeHTML(u.depto) || '<span class="text-muted">—</span>'}</td>
       <td>${perfilBadge(u.perfil)}</td>
       <td>${u.cargaHoraria}h / dia</td>
-      <td>${u.ativo ? '<span class="badge badge-success">Ativo</span>' : '<span class="badge badge-danger">Inativo</span>'}</td>
-      <td class="actions-cell">
-        <button class="btn btn-sm btn-outline" onclick="editUser('perfil', '${u.id}')">✏️ Editar</button>
-        ${isMe ? '' : `<button class="btn btn-sm btn-outline" onclick="toggleUserActive('${u.id}')">${u.ativo ? '🚫 Desativar' : '♻️ Reativar'}</button>`}
-      </td>
+      <td>${situacao}</td>
+      <td class="actions-cell">${acoes}</td>
     `;
     tbody.appendChild(tr);
   });
@@ -1693,6 +1745,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('admFilterEmployee').addEventListener('change', renderAdmTeamPunchTable);
+  document.getElementById('btnGoToApprovals').addEventListener('click', () => switchTab('tab-configuracoes'));
   document.getElementById('btnPrintReport').addEventListener('click', () => window.print());
 
   initSupabase();

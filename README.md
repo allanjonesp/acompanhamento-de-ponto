@@ -8,7 +8,7 @@ Aplicativo web e móvel completo desenvolvido em **HTML5, CSS3 e JavaScript Puro
 
 Os dados agora ficam na nuvem, no **Supabase** (banco PostgreSQL gratuito para começar). Cada pessoa entra com **o próprio e-mail e senha**, em qualquer aparelho, e o gestor acompanha a equipe **em tempo real**.
 
-**Como a segurança funciona:** as regras ficam no próprio banco (*Row Level Security*). Mesmo que alguém mexa no código do site, o Supabase só entrega ao colaborador os registros dele, não deixa ninguém se promover a gestor nem aprovar a própria justificativa. Só e-mails **pré-cadastrados pelo gestor** conseguem criar conta.
+**Como a segurança funciona:** as regras ficam no próprio banco (*Row Level Security*). Mesmo que alguém mexa no código do site, o Supabase só entrega ao colaborador os registros dele, não deixa ninguém se promover a gestor nem aprovar a própria justificativa. Qualquer pessoa com o link pode criar uma conta, mas ela fica **aguardando aprovação do gestor** e, até ser aprovada, não consegue entrar nem bater ponto.
 
 ### Passo a passo da configuração (uma vez só, ~15 minutos)
 
@@ -25,7 +25,9 @@ Os dados agora ficam na nuvem, no **Supabase** (banco PostgreSQL gratuito para c
 6. **Avisar o Supabase do endereço do site:** em **Authentication → URL Configuration**, coloque esse endereço em **Site URL** e também em **Redirect URLs**. Assim os links de confirmação de e-mail e de "Esqueci minha senha" voltam para o app.
 7. **Criar sua senha:** abra o app, toque em **"Primeiro acesso? Criar conta"**, use o e-mail do passo 3 e crie a senha. Por padrão o Supabase envia um e-mail de confirmação: clique no link e depois entre no app.
    - Para dispensar a confirmação por e-mail: **Authentication → Sign In / Providers → Email → desligue "Confirm email"**.
-8. **Cadastrar a equipe:** em **⚙️ Configurações**, faça o pré-cadastro de cada pessoa (nome, e-mail, cargo, departamento, perfil e carga diária). Depois, cada uma abre o app, toca em **"Primeiro acesso? Criar conta"** e cria a própria senha com aquele e-mail.
+8. **Cadastrar a equipe:** envie o link do app para a equipe. Cada pessoa toca em **"Primeiro acesso? Criar conta"**, informa nome, e-mail e senha. O pedido aparece para o gestor em **⚙️ Configurações** (e com um aviso no **Painel da Equipe**) como **"Aguardando aprovação"**: clique em **✅ Aprovar** e depois em **✏️ Editar** para definir cargo, departamento e carga diária.
+   - Atalho opcional: se você fizer o **pré-cadastro** do e-mail em Configurações antes, a pessoa já entra aprovada, com cargo, perfil e carga horária definidos.
+   - **Atualizando de uma versão anterior?** Rode de novo o arquivo `supabase/schema.sql` no SQL Editor (não apaga dados).
 9. **Trazer os dados antigos (opcional):** se você usava a versão 2.0, abra o app **no mesmo navegador/aparelho** onde estavam os dados, entre como gestor e use **Configurações → Importar deste Navegador** (ou importe um backup JSON). As pessoas são ligadas pelo e-mail, então faça o pré-cadastro delas antes. Nada é duplicado se você importar duas vezes.
 
 ### Dia a dia do gestor
