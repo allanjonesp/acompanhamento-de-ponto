@@ -18,10 +18,15 @@ create table if not exists public.perfis (
   perfil        text not null default 'colaborador' check (perfil in ('colaborador', 'gestor')),
   carga_horaria numeric(4,1) not null default 8 check (carga_horaria between 1 and 24),
   ativo         boolean not null default true,
+  pendente      boolean not null default false,  -- cadastrou-se sozinho e aguarda aprovação do gestor
   criado_em     timestamptz not null default now()
 );
 
--- Pré-cadastro feito pelo gestor: só e-mails listados aqui conseguem criar conta
+-- Coluna adicionada na versão com cadastro livre (para bancos criados antes)
+alter table public.perfis add column if not exists pendente boolean not null default false;
+
+-- Pré-cadastro feito pelo gestor (opcional): quem estiver aqui já entra aprovado,
+-- com cargo, perfil e carga horária definidos
 create table if not exists public.pre_cadastros (
   email         text primary key check (email = lower(email)),
   nome          text not null,
@@ -77,22 +82,27 @@ $$;
 
 -- -----------------------------------------------------------------------------
 -- 3. Criação automática do perfil quando alguém cria a conta
---    Só funciona para e-mails pré-cadastrados pelo gestor.
+--    - E-mail pré-cadastrado pelo gestor: entra aprovado com os dados do pré-cadastro.
+--    - Qualquer outro e-mail: entra como colaborador INATIVO, aguardando aprovação.
 -- -----------------------------------------------------------------------------
 create or replace function public.criar_perfil_novo_usuario()
 returns trigger language plpgsql security definer set search_path = public as $$
 declare
   pc public.pre_cadastros;
+  nome_informado text;
 begin
   select * into pc from public.pre_cadastros where email = lower(new.email);
-  if pc.email is null then
-    raise exception 'EMAIL_NAO_AUTORIZADO: peça ao gestor para fazer o pré-cadastro do e-mail %', new.email;
+
+  if pc.email is not null then
+    insert into public.perfis (id, nome, email, cargo, depto, perfil, carga_horaria)
+    values (new.id, pc.nome, lower(new.email), pc.cargo, pc.depto, pc.perfil, pc.carga_horaria);
+    delete from public.pre_cadastros where email = pc.email;
+  else
+    nome_informado := nullif(trim(coalesce(new.raw_user_meta_data ->> 'nome', '')), '');
+    insert into public.perfis (id, nome, email, perfil, ativo, pendente)
+    values (new.id, left(coalesce(nome_informado, split_part(new.email, '@', 1)), 120),
+            lower(new.email), 'colaborador', false, true);
   end if;
-
-  insert into public.perfis (id, nome, email, cargo, depto, perfil, carga_horaria)
-  values (new.id, pc.nome, lower(new.email), pc.cargo, pc.depto, pc.perfil, pc.carga_horaria);
-
-  delete from public.pre_cadastros where email = pc.email;
   return new;
 end;
 $$;
